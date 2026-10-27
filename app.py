@@ -2,22 +2,26 @@ import streamlit as st
 from openai import OpenAI
 import base64
 
+# 페이지 기본 설정
 st.set_page_config(page_title="냉장고 파먹기 AI 요리사", page_icon="🍳")
+
 st.title("🍳 냉장고 파먹기 AI 요리사")
-st.write("재료 이름을 직접 적거나, 냉장고 속 사진을 올려보세요!")
+st.write("재료 이름을 적거나, 냉장고 속 사진을 올려주세요!")
 
-api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+# Streamlit Secrets(비밀 저장소)에서 서버가 직접 API 키를 읽어옵니다.
+# (사용자 화면에는 어떠한 API 키 입력창도 노출되지 않습니다.)
+if "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+else:
+    api_key = None
 
-if not api_key:
-    if "OPENAI_API_KEY" in st.secrets:
-        api_key = st.secrets["OPENAI_API_KEY"]
-
+# 사용자 입력 요소
 text_input = st.text_input("냉장고에 있는 재료", placeholder="예: 계란, 대파, 스팸")
 uploaded_file = st.file_uploader("📸 재료/냉장고 사진 첨부", type=["jpg", "jpeg", "png"])
 
 if st.button("레시피 추천받기"):
     if not api_key:
-        st.error("OpenAI API 키를 사이드바에 입력하거나 Streamlit Secrets에 설정해 주세요!")
+        st.error("현재 서버 설정(Secrets)에 API 키가 등록되지 않았습니다. 관리자에게 문의하세요.")
     elif not text_input and not uploaded_file:
         st.warning("재료 이름을 적거나 사진을 첨부해 주세요!")
     else:
