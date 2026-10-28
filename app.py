@@ -43,7 +43,7 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
 
         with st.spinner("👨‍🍳 AI 요리사가 레시피를 작성 중입니다..."):
             try:
-                # 1. 레시피 텍스트 생성 (gpt-4o-mini)
+                # 1. 레시피 텍스트 생성
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -77,20 +77,24 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                 else:
                     dish_name = text_input + " 요리"
 
-                # 2. 우회 이미지 생성 (Pollinations AI 사용 - OpenAI API 키 및 권한 필요 없음)
-                with st.spinner("🎨 조리 과정 만화 컷을 그리는 중입니다..."):
+                # 2. DALL-E 이미지 생성
+                with st.spinner("🎨 OpenAI DALL-E가 컷만화 이미지를 그리는 중입니다... (약 20~30초 소요)"):
                     image_prompt = (
                         f"A detailed step-by-step cooking comic strip collage illustrating how to make {dish_name}. "
-                        "4-6 sequential panels showing cooking process, comic book style with realistic details, high quality"
+                        "4-6 sequential panels showing cooking process, comic book style with realistic details, high quality, colorful."
                     )
-                    encoded_prompt = urllib.parse.quote(image_prompt)
                     
-                    # 외부 오픈 이미지 생성 엔진 URL
-                    pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
+                    img_res = client.images.generate(
+                        model="dall-e-3",
+                        prompt=image_prompt,
+                        size="1024x1024",
+                        quality="standard",
+                        n=1
+                    )
                     
-                    st.image(pollinations_url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
+                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
 
-                # 3. 유튜브 및 구글 직행 링크 제공
+                # 3. 유튜브 및 구글 직행 링크
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
                 direct_video_url = f"https://www.youtube.com/results?search_query={encoded_term}&sp=EgIQAQ%253D%253D"
