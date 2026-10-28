@@ -8,7 +8,7 @@ import re
 st.set_page_config(page_title="냉장고 파먹기 AI 요리사", page_icon="🍳")
 
 st.title("🍳 냉장고 파먹기 AI 요리사")
-st.write("재료를 입력하거나 사진을 올리면, 사용 가능한 재료만으로 레시피를 추천해 드립니다!")
+st.write("재료를 입력하거나 사진을 올리면, AI가 레시피와 컷만화 조리법을 생성합니다!")
 
 # Streamlit Secrets에서 API 키 가져오기
 api_key = st.secrets.get("OPENAI_API_KEY", None)
@@ -17,7 +17,7 @@ text_input = st.text_input("1. 냉장고에 있는 재료", placeholder="예: �
 desired_menu = st.text_input("2. 먹고 싶은 특정 메뉴 (선택사항)", placeholder="예: 계란볶음밥")
 uploaded_file = st.file_uploader("3. 📸 재료/냉장고 사진 첨부 (선택사항)", type=["jpg", "jpeg", "png"])
 
-if st.button("🍳 레시피 추천받기"):
+if st.button("🍳 레시피 & 만화 조리법 생성하기"):
     if not api_key:
         st.error("Streamlit Secrets에 'OPENAI_API_KEY'가 설정되지 않았습니다.")
     elif not text_input and not uploaded_file:
@@ -43,17 +43,17 @@ if st.button("🍳 레시피 추천받기"):
 
         with st.spinner("👨‍🍳 AI 요리사가 레시피를 작성 중입니다..."):
             try:
+                # 1. 레시피 생성 (gpt-4o-mini)
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {
                             "role": "system",
                             "content": (
-                                "당신은 냉장고 파먹기 전용 AI 요리사입니다.\n\n"
-                                "[엄격한 재료 제한 규칙]\n"
-                                "1. 사용자가 입력한 재료와 기본 조미료(물, 소금, 후추, 식용유, 간장, 설탕) 외 임의의 재료를 절대로 추가하지 마세요.\n"
+                                "당신은 냉장고 파먹기 전용 AI 요리사입니다.\n"
+                                "1. 입력된 재료와 필수 기본 조미료(물, 소금, 후추, 식용유, 간장, 설탕) 외 임의의 재료를 절대로 추가하지 마세요.\n"
                                 "2. 첫 줄은 반드시 '추천 요리: [요리이름]' 형식으로 작성하세요.\n"
-                                "3. 이어서 재료 목록과 Step-by-Step 조리 순서를 보기 쉽게 정리해 주세요."
+                                "3. 이어서 재료 목록과 Step-by-Step 조리 순서를 정리해 주세요."
                             )
                         },
                         {
@@ -77,16 +77,35 @@ if st.button("🍳 레시피 추천받기"):
                 else:
                     dish_name = text_input + " 요리"
 
-                # 유튜브 및 구글 직행 링크 생성
+                # 2. 만화 콜라주 컷 이미지 1장 생성 (DALL-E 3)
+                with st.spinner("🎨 요리 조리 과정 만화 컷을 생성하는 중입니다... (약 1분 소요)"):
+                    image_prompt = (
+                        f"A detailed step-by-step cooking comic strip collage illustrating how to make '{dish_name}'. "
+                        "The image is split into 4-6 sequential panels showing: "
+                        "1. Preparing ingredients, 2. Cooking process in a pan, 3. Seasoning, 4. Final plated dish. "
+                        "Comic book style with realistic details, clear step labels in Korean text, vibrant colors, clean layout."
+                    )
+                    
+                    img_res = client.images.generate(
+                        model="dall-e-3",
+                        prompt=image_prompt,
+                        size="1024x1024",
+                        quality="standard",
+                        n=1
+                    )
+                    
+                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
+
+                # 3. 유튜브/구글 직행 링크
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
                 direct_video_url = f"https://www.youtube.com/results?search_query={encoded_term}&sp=EgIQAQ%253D%253D"
                 google_image_url = f"https://www.google.com/search?tbm=isch&q={encoded_term}"
 
                 st.divider()
-                st.subheader("🎬 추천 조리 영상 & 실물 사진 모아보기")
-                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 관련 레시피 영상 보기]({direct_video_url})**")
-                st.markdown(f"🖼️ **[Google에서 '{dish_name}' 완성 실물 사진 보기]({google_image_url})**")
+                st.subheader("🎬 관련 조리 영상 & 사진")
+                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 시청하기]({direct_video_url})**")
+                st.markdown(f"🖼️ **[Google에서 '{dish_name}' 완제품 실물 사진 보기]({google_image_url})**")
 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
