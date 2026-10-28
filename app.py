@@ -4,11 +4,11 @@ import base64
 import urllib.parse
 import re
 
-# 페이지 설정
+# 페이지 기본 설정
 st.set_page_config(page_title="냉장고 파먹기 AI 요리사", page_icon="🍳")
 
 st.title("🍳 냉장고 파먹기 AI 요리사")
-st.write("재료를 입력하거나 사진을 올리면, AI가 레시피와 컷만화 조리법을 생성합니다!")
+st.write("재료를 입력하거나 사진을 올리면, AI가 레시피와 컷만화 조리법을 직접 그려줍니다!")
 
 # Streamlit Secrets에서 API 키 가져오기
 api_key = st.secrets.get("OPENAI_API_KEY", None)
@@ -43,7 +43,7 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
 
         with st.spinner("👨‍🍳 AI 요리사가 레시피를 작성 중입니다..."):
             try:
-                # 1. 레시피 생성 (gpt-4o-mini)
+                # 1. 레시피 텍스트 생성 (gpt-4o-mini)
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -77,15 +77,16 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                 else:
                     dish_name = text_input + " 요리"
 
-                # 2. 만화 콜라주 컷 이미지 1장 생성 (DALL-E 3)
-                with st.spinner("🎨 요리 조리 과정 만화 컷을 생성하는 중입니다... (약 1분 소요)"):
+                # 2. 요리 만화 컷 콜라주 이미지 생성 (dall-e-3 또는 dall-e-2)
+                with st.spinner("🎨 조리 과정을 컷만화 이미지로 그리는 중입니다... (약 30초~1분 소요)"):
                     image_prompt = (
                         f"A detailed step-by-step cooking comic strip collage illustrating how to make '{dish_name}'. "
-                        "The image is split into 4-6 sequential panels showing: "
-                        "1. Preparing ingredients, 2. Cooking process in a pan, 3. Seasoning, 4. Final plated dish. "
-                        "Comic book style with realistic details, clear step labels in Korean text, vibrant colors, clean layout."
+                        "The image is split into 4 sequential panels showing: "
+                        "1. Preparing ingredients, 2. Cooking in a pan, 3. Adding seasoning, 4. Final plated dish. "
+                        "Comic book webtoon style with realistic details, clear panels, vibrant colors."
                     )
                     
+                    # dall-e-3 호환용 (만약 400 에러 발생 시 아래 model을 "dall-e-2", size를 "512x512"로 변경하세요)
                     img_res = client.images.generate(
                         model="dall-e-3",
                         prompt=image_prompt,
@@ -94,17 +95,17 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                         n=1
                     )
                     
-                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
+                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 4컷 만화 조리법", use_container_width=True)
 
-                # 3. 유튜브/구글 직행 링크
+                # 3. 유튜브 및 구글 직행 링크 제공
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
                 direct_video_url = f"https://www.youtube.com/results?search_query={encoded_term}&sp=EgIQAQ%253D%253D"
                 google_image_url = f"https://www.google.com/search?tbm=isch&q={encoded_term}"
 
                 st.divider()
-                st.subheader("🎬 관련 조리 영상 & 사진")
-                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 시청하기]({direct_video_url})**")
+                st.subheader("🎬 관련 조리 영상 & 실물 사진")
+                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 보기]({direct_video_url})**")
                 st.markdown(f"🖼️ **[Google에서 '{dish_name}' 완제품 실물 사진 보기]({google_image_url})**")
 
             except Exception as e:
