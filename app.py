@@ -4,33 +4,29 @@ import base64
 import urllib.parse
 import re
 
-# 페이지 기본 설정
+# 페이지 설정
 st.set_page_config(page_title="냉장고 파먹기 AI 요리사", page_icon="🍳")
 
 st.title("🍳 냉장고 파먹기 AI 요리사")
-st.write("재료를 입력하거나 사진을 올리고, 원하는 메뉴가 있다면 적어주세요!")
+st.write("재료를 입력하거나 사진을 올리면, AI가 레시피와 컷만화 조리법을 생성합니다!")
 
 # Streamlit Secrets에서 API 키 가져오기
-if "OPENAI_API_KEY" in st.secrets:
-    api_key = st.secrets["OPENAI_API_KEY"]
-else:
-    api_key = None
+api_key = st.secrets.get("OPENAI_API_KEY", None)
 
-# 입력 영역
 text_input = st.text_input("1. 냉장고에 있는 재료", placeholder="예: 계란, 대파, 찬밥")
-desired_menu = st.text_input("2. 먹고 싶은 특정 메뉴 (선택사항)", placeholder="예: 계란볶음밥 (비워두면 AI가 자동 추천)")
+desired_menu = st.text_input("2. 먹고 싶은 특정 메뉴 (선택사항)", placeholder="예: 계란볶음밥")
 uploaded_file = st.file_uploader("3. 📸 재료/냉장고 사진 첨부 (선택사항)", type=["jpg", "jpeg", "png"])
 
-if st.button("🍳 레시피 추천받기"):
+if st.button("🍳 레시피 & 만화 조리법 생성하기"):
     if not api_key:
-        st.error("현재 서버 설정(Secrets)에 API 키가 등록되지 않았습니다.")
+        st.error("Streamlit Secrets에 'OPENAI_API_KEY'가 설정되지 않았습니다.")
     elif not text_input and not uploaded_file:
-        st.warning("재료 이름을 적거나 사진을 첨부해 주세요!")
+        st.warning("재료를 적거나 사진을 첨부해 주세요!")
     else:
         client = OpenAI(api_key=api_key)
         user_content = []
 
-        prompt_text = f"냉장고 재료: {text_input}\n"
+        prompt_text = f"사용자가 입력한 재료: {text_input}\n"
         if desired_menu:
             prompt_text += f"희망 메뉴: {desired_menu}\n"
         
@@ -43,20 +39,21 @@ if st.button("🍳 레시피 추천받기"):
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
             })
-            user_content.append({"type": "text", "text": "첨부된 사진 속 재료들도 함께 인식해서 레시피에 반영해 주세요."})
+            user_content.append({"type": "text", "text": "사진 속 보이는 재료만 인식해서 사용하세요."})
 
-        with st.spinner("👨‍🍳 AI 요리사가 최고의 레시피를 구상 중입니다..."):
+        with st.spinner("👨‍🍳 AI 요리사가 레시피를 작성 중입니다..."):
             try:
+                # 1. 레시피 생성 (gpt-4o-mini)
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {
                             "role": "system",
                             "content": (
-                                "당신은 친절한 백종원 스타일의 AI 요리사입니다.\n"
-                                "반드시 답변 첫 줄에 '추천 요리: [요리이름]' 형식을 포함해서 요리 이름을 명확히 작성해 주세요. "
-                                "(예: 추천 요리: 백종원 대파 계란볶음밥)\n"
-                                "이어서 필요한 준비 재료, 추가 양념, step-by-step 조리 순서를 보기 쉽게 정리해 주세요."
+                                "당신은 냉장고 파먹기 전용 AI 요리사입니다.\n"
+                                "1. 입력된 재료와 필수 기본 조미료(물, 소금, 후추, 식용유, 간장, 설탕) 외 임의의 재료를 절대로 추가하지 마세요.\n"
+                                "2. 첫 줄은 반드시 '추천 요리: [요리이름]' 형식으로 작성하세요.\n"
+                                "3. 이어서 재료 목록과 Step-by-Step 조리 순서를 정리해 주세요."
                             )
                         },
                         {
@@ -80,21 +77,35 @@ if st.button("🍳 레시피 추천받기"):
                 else:
                     dish_name = text_input + " 요리"
 
-                # 검색 키워드 인코딩
+                # 2. 만화 콜라주 컷 이미지 1장 생성 (DALL-E 3)
+                with st.spinner("🎨 요리 조리 과정 만화 컷을 생성하는 중입니다... (약 1분 소요)"):
+                    image_prompt = (
+                        f"A detailed step-by-step cooking comic strip collage illustrating how to make '{dish_name}'. "
+                        "The image is split into 4-6 sequential panels showing: "
+                        "1. Preparing ingredients, 2. Cooking process in a pan, 3. Seasoning, 4. Final plated dish. "
+                        "Comic book style with realistic details, clear step labels in Korean text, vibrant colors, clean layout."
+                    )
+                    
+                    img_res = client.images.generate(
+                        model="dall-e-3",
+                        prompt=image_prompt,
+                        size="1024x1024",
+                        quality="standard",
+                        n=1
+                    )
+                    
+                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
+
+                # 3. 유튜브/구글 직행 링크
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
-
-                st.divider()
-                st.subheader(f"🎬 '{dish_name}' 관련 조리 영상/사진")
-
-                # 1. 유튜브 검색창을 거치지 않고 가장 정확한 개별 동영상 목록으로 바로 연결되는 직행 링크
                 direct_video_url = f"https://www.youtube.com/results?search_query={encoded_term}&sp=EgIQAQ%253D%253D"
-                
-                # 2. 구글 이미지 검색 직행 링크 (완성된 이미지/사진 바로 확인)
                 google_image_url = f"https://www.google.com/search?tbm=isch&q={encoded_term}"
 
-                st.markdown(f"▶️ **[이곳을 클릭하여 '{dish_name}' 추천 동영상 바로 재생하기]({direct_video_url})**")
-                st.markdown(f"🖼️ **[이곳을 클릭하여 '{dish_name}' 완제품 실물 사진 모아보기]({google_image_url})**")
+                st.divider()
+                st.subheader("🎬 관련 조리 영상 & 사진")
+                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 시청하기]({direct_video_url})**")
+                st.markdown(f"🖼️ **[Google에서 '{dish_name}' 완제품 실물 사진 보기]({google_image_url})**")
 
             except Exception as e:
                 st.error(f"오류가 발생했습니다: {e}")
