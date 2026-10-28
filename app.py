@@ -88,9 +88,9 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                     
                     # dall-e-3 호환용 (만약 400 에러 발생 시 아래 model을 "dall-e-2", size를 "512x512"로 변경하세요)
                     img_res = client.images.generate(
-                        model="dall-e-3",
+                        model="dall-e-2",
                         prompt=image_prompt,
-                        size="1024x1024",
+                        size="512x512",
                         quality="standard",
                         n=1
                     )
