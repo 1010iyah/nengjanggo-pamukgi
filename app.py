@@ -77,25 +77,18 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                 else:
                     dish_name = text_input + " 요리"
 
-                # 2. 요리 만화 컷 콜라주 이미지 생성 (dall-e-3 또는 dall-e-2)
-                with st.spinner("🎨 조리 과정을 컷만화 이미지로 그리는 중입니다... (약 30초~1분 소요)"):
+                # 2. 우회 이미지 생성 (Pollinations AI 사용 - OpenAI API 키 및 권한 필요 없음)
+                with st.spinner("🎨 조리 과정 만화 컷을 그리는 중입니다..."):
                     image_prompt = (
-                        f"A detailed step-by-step cooking comic strip collage illustrating how to make '{dish_name}'. "
-                        "The image is split into 4 sequential panels showing: "
-                        "1. Preparing ingredients, 2. Cooking in a pan, 3. Adding seasoning, 4. Final plated dish. "
-                        "Comic book webtoon style with realistic details, clear panels, vibrant colors."
+                        f"A detailed step-by-step cooking comic strip collage illustrating how to make {dish_name}. "
+                        "4-6 sequential panels showing cooking process, comic book style with realistic details, high quality"
                     )
+                    encoded_prompt = urllib.parse.quote(image_prompt)
                     
-                    # dall-e-3 호환용 (만약 400 에러 발생 시 아래 model을 "dall-e-2", size를 "512x512"로 변경하세요)
-                    img_res = client.images.generate(
-                        model="dall-e-2",
-                        prompt=image_prompt,
-                        size="512x512",
-                        quality="standard",
-                        n=1
-                    )
+                    # 외부 오픈 이미지 생성 엔진 URL
+                    pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
                     
-                    st.image(img_res.data[0].url, caption=f"🖼️ {dish_name} 4컷 만화 조리법", use_container_width=True)
+                    st.image(pollinations_url, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
 
                 # 3. 유튜브 및 구글 직행 링크 제공
                 search_term = f"{dish_name} 레시피"
