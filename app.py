@@ -23,6 +23,7 @@ if st.button("🍳 레시피 추천받기"):
     elif not text_input and not uploaded_file:
         st.warning("재료를 적거나 사진을 첨부해 주세요!")
     else:
+        # Client 생성
         client = genai.Client(api_key=gemini_key)
         
         contents = []
@@ -44,8 +45,9 @@ if st.button("🍳 레시피 추천받기"):
 
         with st.spinner("👨‍🍳 Gemini 요리사가 레시피를 작성 중입니다..."):
             try:
+                # 가장 안전하고 호환성 높은 공식 모델 별칭 지정
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-flash-latest',
                     contents=contents
                 )
                 recipe_result = response.text
@@ -63,7 +65,7 @@ if st.button("🍳 레시피 추천받기"):
                 else:
                     dish_name = "요리"
 
-                # 완성 요리 관련 링크
+                # 유튜브 및 구글 검색 직행 링크
                 st.divider()
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
