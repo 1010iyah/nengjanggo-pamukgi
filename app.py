@@ -25,8 +25,8 @@ if st.button("🍳 레시피 추천받기"):
     else:
         genai.configure(api_key=gemini_key)
         
-        # 최신 안정 모델 설정
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # 최신 API 호환 기본 모델 별칭 사용
+        model = genai.GenerativeModel('gemini-flash')
         
         contents = []
         
