@@ -1,6 +1,5 @@
 import streamlit as st
 from google import genai
-from google.genai import types
 from PIL import Image
 import urllib.parse
 import re
@@ -24,7 +23,6 @@ if st.button("🍳 레시피 추천받기"):
     elif not text_input and not uploaded_file:
         st.warning("재료를 적거나 사진을 첨부해 주세요!")
     else:
-        # 최신 공식 Client 방식
         client = genai.Client(api_key=gemini_key)
         
         contents = []
@@ -39,7 +37,6 @@ if st.button("🍳 레시피 추천받기"):
         )
         contents.append(prompt_text)
 
-        # 사진이 업로드된 경우 이미지 추가
         if uploaded_file:
             uploaded_image = Image.open(uploaded_file)
             contents.append(uploaded_image)
@@ -47,7 +44,6 @@ if st.button("🍳 레시피 추천받기"):
 
         with st.spinner("👨‍🍳 Gemini 요리사가 레시피를 작성 중입니다..."):
             try:
-                # 구글 공식 최신 모델 명칭
                 response = client.models.generate_content(
                     model='gemini-1.5-flash',
                     contents=contents
@@ -67,14 +63,8 @@ if st.button("🍳 레시피 추천받기"):
                 else:
                     dish_name = "요리"
 
-                # 1. 대표 요리 이미지 연동 (Unsplash)
+                # 완성 요리 관련 링크
                 st.divider()
-                st.subheader("🖼️ 완성 요리 이미지")
-                encoded_dish = urllib.parse.quote(dish_name)
-                photo_url = f"https://source.unsplash.com/800x600/?food,{encoded_dish}"
-                st.image(photo_url, caption=f"'{dish_name}' 대표 이미지", use_container_width=True)
-
-                # 2. 유튜브 및 구글 직행 검색 링크
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
                 direct_video_url = f"https://www.youtube.com/results?search_query={encoded_term}&sp=EgIQAQ%253D%253D"
