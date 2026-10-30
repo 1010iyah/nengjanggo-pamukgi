@@ -49,9 +49,9 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
 
         with st.spinner("👨‍🍳 Gemini 요리사가 레시피를 작성 중입니다..."):
             try:
-                # 1. 텍스트 레시피 생성 (gemini-2.5-flash)
+                # 1. 텍스트 레시피 생성 (gemini-1.5-flash 모델 적용)
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-1.5-flash',
                     contents=contents,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction
@@ -94,7 +94,7 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
                             st.image(image, caption=f"🖼️ {dish_name} 조리 과정 만화 컷", use_container_width=True)
 
                     except Exception as img_err:
-                        st.warning("💡 이미지 생성 부분에 잠시 지연이 발생했습니다. 실물 사진/영상 링크를 이용해 보세요.")
+                        st.warning("💡 이미지 생성 부분에 잠시 지연이 발생했습니다. 아래 관련 사진/영상 링크를 이용해 보세요.")
 
                 # 3. 유튜브 및 구글 직행 링크
                 search_term = f"{dish_name} 레시피"
@@ -104,7 +104,7 @@ if st.button("🍳 레시피 & 만화 조리법 생성하기"):
 
                 st.divider()
                 st.subheader("🎬 관련 조리 영상 & 실물 사진")
-                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 시청하기]({direct_video_url})**")
+                st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 보기]({direct_video_url})**")
                 st.markdown(f"🖼️ **[Google에서 '{dish_name}' 완성 실물 사진 보기]({google_image_url})**")
 
             except Exception as e:
