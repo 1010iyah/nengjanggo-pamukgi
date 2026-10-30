@@ -3,6 +3,7 @@ from google import genai
 from PIL import Image
 import urllib.parse
 import re
+import time
 
 # 페이지 기본 설정
 st.set_page_config(page_title="냉장고 파먹기 AI 요리사", page_icon="🍳")
@@ -23,7 +24,6 @@ if st.button("🍳 레시피 추천받기"):
     elif not text_input and not uploaded_file:
         st.warning("재료를 적거나 사진을 첨부해 주세요!")
     else:
-        # Client 생성
         client = genai.Client(api_key=gemini_key)
         
         contents = []
@@ -43,13 +43,24 @@ if st.button("🍳 레시피 추천받기"):
             contents.append(uploaded_image)
             contents.append("사진에 있는 재료들을 분석하여 레시피에 적극 활용하세요.")
 
-        with st.spinner("👨‍🍳 Gemini 요리사가 레시피를 작성 중입니다..."):
-            try:
-                # 가장 안전하고 호환성 높은 공식 모델 별칭 지정
-                response = client.models.generate_content(
-                    model='gemini-flash-latest',
-                    contents=contents
-                )
+        with st.spinner("👨‍🍳 Ai 요리사가 레시피를 작성 중입니다...잠시만 기다려주세요"):
+            # 503 서버 과부하 대비 백업 모델 순차 호출 구조
+            target_models = ['gemini-2.0-flash', 'gemini-flash-latest']
+            response = None
+            
+            for model_name in target_models:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=contents
+                    )
+                    if response and response.text:
+                        break
+                except Exception as e:
+                    time.sleep(1)
+                    continue
+
+            if response and response.text:
                 recipe_result = response.text
                 
                 st.success("레시피가 완성되었습니다!")
@@ -65,7 +76,7 @@ if st.button("🍳 레시피 추천받기"):
                 else:
                     dish_name = "요리"
 
-                # 유튜브 및 구글 검색 직행 링크
+                # 완성 요리 관련 링크
                 st.divider()
                 search_term = f"{dish_name} 레시피"
                 encoded_term = urllib.parse.quote(search_term)
@@ -75,6 +86,5 @@ if st.button("🍳 레시피 추천받기"):
                 st.subheader("🎬 관련 조리 영상 & 검색")
                 st.markdown(f"▶️ **[YouTube에서 '{dish_name}' 추천 동영상 보기]({direct_video_url})**")
                 st.markdown(f"🖼️ **[Google에서 '{dish_name}' 실물 사진 검색]({google_image_url})**")
-
-            except Exception as e:
-                st.error(f"오류가 발생했습니다: {e}")
+            else:
+                st.error("구글 API 서버가 일시적으로 지연되고 있습니다. 잠시 후 다시 '레시피 추천받기' 버튼을 눌러주세요.")
