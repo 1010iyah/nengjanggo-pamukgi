@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 import urllib.parse
 import re
@@ -23,10 +24,8 @@ if st.button("🍳 레시피 추천받기"):
     elif not text_input and not uploaded_file:
         st.warning("재료를 적거나 사진을 첨부해 주세요!")
     else:
-        genai.configure(api_key=gemini_key)
-        
-        # 최신 API 호환 기본 모델 별칭 사용
-        model = genai.GenerativeModel('gemini-flash')
+        # 최신 공식 Client 방식
+        client = genai.Client(api_key=gemini_key)
         
         contents = []
         
@@ -48,7 +47,11 @@ if st.button("🍳 레시피 추천받기"):
 
         with st.spinner("👨‍🍳 Gemini 요리사가 레시피를 작성 중입니다..."):
             try:
-                response = model.generate_content(contents)
+                # 구글 공식 최신 모델 명칭
+                response = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=contents
+                )
                 recipe_result = response.text
                 
                 st.success("레시피가 완성되었습니다!")
